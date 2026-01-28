@@ -1,30 +1,45 @@
-# Meal planning app
+# MealMind
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+Plan dinners fast. Stress less.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/frederickbruces-projects/v0-meal-planning-app-ws)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/jwGMR6PEktF)
+MealMind is a simple meal planning app that helps you organize weekly dinners, generate meal plans, and create shopping lists.
 
-## Overview
+## Features
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+- **Meals Library** - Add, edit, and delete meals with name, tags, cook time, and ingredients
+- **Weekly Planner** - Generate meal plans based on your preferences, reroll individual days, and swap meals between days
+- **Shopping List** - Auto-generated ingredient list from your weekly plan with persistent checkboxes
+- **Settings** - Configure dinners per week, max cook time, excluded ingredients, and allow/disallow repeats
 
-## Deployment
+## Tech Stack
 
-Your project is live at:
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- shadcn/ui components
+- localStorage for data persistence (MVP)
 
-**[https://vercel.com/frederickbruces-projects/v0-meal-planning-app-ws](https://vercel.com/frederickbruces-projects/v0-meal-planning-app-ws)**
+## Getting Started
 
-## Build your app
+```bash
+npm install
+npm run dev
+```
 
-Continue building your app on:
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-**[https://v0.app/chat/jwGMR6PEktF](https://v0.app/chat/jwGMR6PEktF)**
+## Project Structure
 
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+```
+/app
+  /(app)           # Main app routes with sidebar layout
+    /meals         # Meals library page
+    /planner       # Weekly planner page
+    /shopping      # Shopping list page
+    /settings      # User settings page
+/components        # Reusable UI components
+/lib
+  /store.ts        # localStorage persistence and plan generation
+  /types.ts        # TypeScript type definitions
+```
