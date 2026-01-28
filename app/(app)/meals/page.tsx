@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, UtensilsCrossed } from "lucide-react"
+import { Plus, UtensilsCrossed, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import type { Meal } from "@/lib/types"
-import { getMeals, addMeal, updateMeal, deleteMeal } from "@/lib/db"
+import { getMeals, addMeal, updateMeal, deleteMeal, seedSampleMeals } from "@/lib/db"
 import { MealForm } from "@/components/meal-form"
 import { MealCard } from "@/components/meal-card"
 
@@ -32,6 +32,7 @@ export default function MealsPage() {
   const [editingMeal, setEditingMeal] = useState<Meal | undefined>()
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isSeeding, setIsSeeding] = useState(false)
 
   const loadMeals = async () => {
     const loaded = await getMeals()
@@ -80,6 +81,17 @@ export default function MealsPage() {
     }
   }
 
+  const handleSeedMeals = async () => {
+    setIsSeeding(true)
+    const count = await seedSampleMeals()
+    await loadMeals()
+    setIsSeeding(false)
+    toast({
+      title: `Added ${count} sample meals!`,
+      description: "Your meal library is ready to go.",
+    })
+  }
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -110,12 +122,18 @@ export default function MealsPage() {
           </div>
           <h3 className="text-lg font-medium text-foreground mb-1">No meals yet</h3>
           <p className="text-muted-foreground text-center max-w-sm mb-4">
-            Start building your meal library by adding your favorite recipes. These will be used to generate your weekly plans.
+            Start building your meal library by adding your favorite recipes, or load sample meals to get started quickly.
           </p>
-          <Button onClick={handleAddMeal}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Meal
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button onClick={handleAddMeal}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Your First Meal
+            </Button>
+            <Button variant="outline" onClick={handleSeedMeals} disabled={isSeeding}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              {isSeeding ? "Adding..." : "Load Sample Meals"}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

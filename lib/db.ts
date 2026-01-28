@@ -349,6 +349,197 @@ export async function setDayMeal(weekStart: string, dayDate: string, mealId: str
 }
 
 // ============================================
+// SEED DATA
+// ============================================
+
+const SAMPLE_MEALS = [
+  {
+    name: "Spaghetti Bolognese",
+    tags: ["italian", "comfort food", "family favorite"],
+    cookTimeMinutes: 35,
+    ingredients: [
+      { name: "Spaghetti", quantity: "400g" },
+      { name: "Ground beef", quantity: "500g" },
+      { name: "Tomato sauce", quantity: "400g" },
+      { name: "Onion", quantity: "1 medium" },
+      { name: "Garlic", quantity: "3 cloves" },
+      { name: "Parmesan cheese", quantity: "50g" },
+    ],
+  },
+  {
+    name: "Chicken Stir Fry",
+    tags: ["asian", "quick", "healthy"],
+    cookTimeMinutes: 20,
+    ingredients: [
+      { name: "Chicken breast", quantity: "500g" },
+      { name: "Bell peppers", quantity: "2" },
+      { name: "Broccoli", quantity: "1 head" },
+      { name: "Soy sauce", quantity: "3 tbsp" },
+      { name: "Ginger", quantity: "1 inch" },
+      { name: "Rice", quantity: "2 cups" },
+    ],
+  },
+  {
+    name: "Tacos",
+    tags: ["mexican", "fun", "family favorite"],
+    cookTimeMinutes: 25,
+    ingredients: [
+      { name: "Ground beef", quantity: "500g" },
+      { name: "Taco shells", quantity: "12" },
+      { name: "Lettuce", quantity: "1 head" },
+      { name: "Tomatoes", quantity: "2" },
+      { name: "Cheddar cheese", quantity: "200g" },
+      { name: "Sour cream", quantity: "1 cup" },
+      { name: "Taco seasoning", quantity: "1 packet" },
+    ],
+  },
+  {
+    name: "Grilled Salmon",
+    tags: ["seafood", "healthy", "quick"],
+    cookTimeMinutes: 20,
+    ingredients: [
+      { name: "Salmon fillets", quantity: "4" },
+      { name: "Lemon", quantity: "2" },
+      { name: "Olive oil", quantity: "2 tbsp" },
+      { name: "Asparagus", quantity: "1 bunch" },
+      { name: "Garlic", quantity: "2 cloves" },
+    ],
+  },
+  {
+    name: "Veggie Curry",
+    tags: ["vegetarian", "indian", "comfort food"],
+    cookTimeMinutes: 40,
+    ingredients: [
+      { name: "Chickpeas", quantity: "2 cans" },
+      { name: "Coconut milk", quantity: "400ml" },
+      { name: "Tomatoes", quantity: "400g can" },
+      { name: "Spinach", quantity: "200g" },
+      { name: "Curry powder", quantity: "2 tbsp" },
+      { name: "Rice", quantity: "2 cups" },
+      { name: "Onion", quantity: "1 large" },
+    ],
+  },
+  {
+    name: "BBQ Chicken Pizza",
+    tags: ["pizza", "fun", "family favorite"],
+    cookTimeMinutes: 30,
+    ingredients: [
+      { name: "Pizza dough", quantity: "1" },
+      { name: "BBQ sauce", quantity: "1/2 cup" },
+      { name: "Chicken breast", quantity: "300g" },
+      { name: "Red onion", quantity: "1" },
+      { name: "Mozzarella cheese", quantity: "200g" },
+      { name: "Cilantro", quantity: "1 bunch" },
+    ],
+  },
+  {
+    name: "Beef Burgers",
+    tags: ["american", "grilling", "family favorite"],
+    cookTimeMinutes: 25,
+    ingredients: [
+      { name: "Ground beef", quantity: "600g" },
+      { name: "Burger buns", quantity: "4" },
+      { name: "Cheddar cheese", quantity: "4 slices" },
+      { name: "Lettuce", quantity: "4 leaves" },
+      { name: "Tomato", quantity: "1 large" },
+      { name: "Pickles", quantity: "8 slices" },
+    ],
+  },
+  {
+    name: "Pasta Primavera",
+    tags: ["italian", "vegetarian", "healthy"],
+    cookTimeMinutes: 25,
+    ingredients: [
+      { name: "Penne pasta", quantity: "400g" },
+      { name: "Zucchini", quantity: "2" },
+      { name: "Cherry tomatoes", quantity: "200g" },
+      { name: "Bell peppers", quantity: "2" },
+      { name: "Parmesan cheese", quantity: "50g" },
+      { name: "Olive oil", quantity: "3 tbsp" },
+    ],
+  },
+  {
+    name: "Chicken Fajitas",
+    tags: ["mexican", "quick", "fun"],
+    cookTimeMinutes: 25,
+    ingredients: [
+      { name: "Chicken breast", quantity: "500g" },
+      { name: "Flour tortillas", quantity: "8" },
+      { name: "Bell peppers", quantity: "3" },
+      { name: "Onion", quantity: "1 large" },
+      { name: "Fajita seasoning", quantity: "1 packet" },
+      { name: "Lime", quantity: "2" },
+    ],
+  },
+  {
+    name: "Meatball Subs",
+    tags: ["italian", "comfort food", "family favorite"],
+    cookTimeMinutes: 35,
+    ingredients: [
+      { name: "Ground beef", quantity: "500g" },
+      { name: "Sub rolls", quantity: "4" },
+      { name: "Marinara sauce", quantity: "2 cups" },
+      { name: "Mozzarella cheese", quantity: "200g" },
+      { name: "Breadcrumbs", quantity: "1/2 cup" },
+      { name: "Egg", quantity: "1" },
+    ],
+  },
+  {
+    name: "Teriyaki Salmon Bowl",
+    tags: ["asian", "healthy", "quick"],
+    cookTimeMinutes: 25,
+    ingredients: [
+      { name: "Salmon fillets", quantity: "2" },
+      { name: "Teriyaki sauce", quantity: "1/4 cup" },
+      { name: "Rice", quantity: "2 cups" },
+      { name: "Edamame", quantity: "1 cup" },
+      { name: "Avocado", quantity: "1" },
+      { name: "Sesame seeds", quantity: "1 tbsp" },
+    ],
+  },
+  {
+    name: "Stuffed Bell Peppers",
+    tags: ["healthy", "comfort food"],
+    cookTimeMinutes: 45,
+    ingredients: [
+      { name: "Bell peppers", quantity: "4 large" },
+      { name: "Ground turkey", quantity: "500g" },
+      { name: "Rice", quantity: "1 cup" },
+      { name: "Tomato sauce", quantity: "1 cup" },
+      { name: "Cheddar cheese", quantity: "100g" },
+      { name: "Onion", quantity: "1" },
+    ],
+  },
+]
+
+export async function seedSampleMeals(): Promise<number> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return 0
+
+  let addedCount = 0
+  
+  for (const meal of SAMPLE_MEALS) {
+    const { error } = await supabase
+      .from("meals")
+      .insert({
+        user_id: user.id,
+        name: meal.name,
+        tags: meal.tags,
+        cook_time_minutes: meal.cookTimeMinutes,
+        ingredients: meal.ingredients,
+      })
+
+    if (!error) {
+      addedCount++
+    }
+  }
+
+  return addedCount
+}
+
+// ============================================
 // HOUSEHOLD FUNCTIONS
 // ============================================
 
