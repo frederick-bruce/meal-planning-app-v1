@@ -1,5 +1,5 @@
 -- MealMind Database Schema
--- Tables: meals, weekly_plans, settings
+-- Tables: meals, weekly_plans, user_settings
 
 -- Meals table
 create table if not exists public.meals (
@@ -7,10 +7,9 @@ create table if not exists public.meals (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   tags text[] default '{}',
-  cook_time integer default 30,
-  ingredients text[] default '{}',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  cook_time_minutes integer default 30,
+  ingredients jsonb default '[]',
+  created_at timestamptz default now()
 );
 
 -- Weekly plans table
@@ -18,10 +17,8 @@ create table if not exists public.weekly_plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   week_start date not null,
-  plan jsonb not null default '{}',
-  checked_items jsonb default '{}',
+  days jsonb not null default '[]',
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
   unique(user_id, week_start)
 );
 
@@ -30,11 +27,10 @@ create table if not exists public.user_settings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade unique,
   dinners_per_week integer default 5,
-  max_cook_time integer default 60,
+  max_cook_time_minutes integer default 45,
   excluded_ingredients text[] default '{}',
   allow_repeats boolean default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  created_at timestamptz default now()
 );
 
 -- Enable RLS
@@ -71,25 +67,3 @@ create policy "Users can update their own settings" on public.user_settings
   for update using (auth.uid() = user_id);
 create policy "Users can delete their own settings" on public.user_settings
   for delete using (auth.uid() = user_id);
-
--- Function to auto-create settings for new users
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_settings (user_id)
-  values (new.id)
-  on conflict (user_id) do nothing;
-  return new;
-end;
-$$;
-
--- Trigger to create settings on user signup
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row
-  execute function public.handle_new_user();
