@@ -20,8 +20,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Meal } from "@/lib/types"
-import { getMeals, addMeal, updateMeal, deleteMeal } from "@/lib/store"
+import type { Meal } from "@/lib/types"
+import { getMeals, addMeal, updateMeal, deleteMeal } from "@/lib/db"
 import { MealForm } from "@/components/meal-form"
 import { MealCard } from "@/components/meal-card"
 
@@ -33,9 +33,14 @@ export default function MealsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  useEffect(() => {
-    setMeals(getMeals())
+  const loadMeals = async () => {
+    const loaded = await getMeals()
+    setMeals(loaded)
     setIsLoaded(true)
+  }
+
+  useEffect(() => {
+    loadMeals()
   }, [])
 
   const handleAddMeal = () => {
@@ -48,27 +53,28 @@ export default function MealsPage() {
     setIsDialogOpen(true)
   }
 
-  const handleSubmit = (mealData: Omit<Meal, "id"> & { id?: string }) => {
+  const handleSubmit = async (mealData: Omit<Meal, "id"> & { id?: string }) => {
     if (mealData.id) {
-      updateMeal(mealData as Meal)
+      await updateMeal(mealData as Meal)
       toast({ title: "Meal updated successfully" })
     } else {
-      const newMeal: Meal = {
-        ...mealData,
-        id: crypto.randomUUID(),
-      }
-      addMeal(newMeal)
+      await addMeal({
+        name: mealData.name,
+        tags: mealData.tags,
+        cookTimeMinutes: mealData.cookTimeMinutes,
+        ingredients: mealData.ingredients,
+      })
       toast({ title: "Meal added successfully" })
     }
-    setMeals(getMeals())
+    await loadMeals()
     setIsDialogOpen(false)
     setEditingMeal(undefined)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteConfirmId) {
-      deleteMeal(deleteConfirmId)
-      setMeals(getMeals())
+      await deleteMeal(deleteConfirmId)
+      await loadMeals()
       toast({ title: "Meal deleted" })
       setDeleteConfirmId(null)
     }

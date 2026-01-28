@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Settings, DEFAULT_SETTINGS } from "@/lib/types"
-import { getSettings, saveSettings } from "@/lib/store"
+import type { Settings } from "@/lib/types"
+import { DEFAULT_SETTINGS } from "@/lib/types"
+import { getSettings, saveSettings } from "@/lib/db"
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -20,9 +21,12 @@ export default function SettingsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    const loaded = getSettings()
-    setSettings(loaded)
-    setIsLoaded(true)
+    const loadSettings = async () => {
+      const loaded = await getSettings()
+      setSettings(loaded)
+      setIsLoaded(true)
+    }
+    loadSettings()
   }, [])
 
   const updateSettings = (updates: Partial<Settings>) => {
@@ -45,8 +49,8 @@ export default function SettingsPage() {
     })
   }
 
-  const handleSave = () => {
-    saveSettings(settings)
+  const handleSave = async () => {
+    await saveSettings(settings)
     setHasChanges(false)
     toast({
       title: "Settings saved!",

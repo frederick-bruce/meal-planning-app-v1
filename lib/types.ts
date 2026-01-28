@@ -5,13 +5,16 @@ export interface Ingredient {
 
 export interface Meal {
   id: string
+  user_id?: string
   name: string
   tags: string[]
   cookTimeMinutes: number
   ingredients: Ingredient[]
+  created_at?: string
 }
 
 export interface Settings {
+  user_id?: string
   dinnersPerWeek: number
   maxCookTimeMinutes: number
   excludedIngredients: string[]
@@ -24,8 +27,11 @@ export interface DayPlan {
 }
 
 export interface WeekPlan {
+  id?: string
+  user_id?: string
   weekStart: string
   days: DayPlan[]
+  created_at?: string
 }
 
 export interface ShoppingItem {

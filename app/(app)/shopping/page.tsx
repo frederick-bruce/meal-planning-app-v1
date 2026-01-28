@@ -6,15 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ShoppingItem } from "@/lib/types"
+import type { ShoppingItem } from "@/lib/types"
 import {
   getWeekStart,
   formatDate,
   getWeekPlan,
   generateShoppingList,
-  getShoppingList,
-  saveShoppingList,
-} from "@/lib/store"
+} from "@/lib/db"
 import { cn } from "@/lib/utils"
 
 export default function ShoppingPage() {
@@ -27,23 +25,17 @@ export default function ShoppingPage() {
 
   const weekStartStr = formatDate(currentWeekStart)
 
-  const loadData = useCallback(() => {
-    const savedItems = getShoppingList()
-    if (savedItems.length > 0) {
-      setItems(savedItems)
-    } else {
-      const plan = getWeekPlan(weekStartStr)
-      if (plan) {
-        const generated = generateShoppingList(weekStartStr)
-        setItems(generated)
-        saveShoppingList(generated)
-      }
+  const loadData = useCallback(async () => {
+    const plan = await getWeekPlan(weekStartStr)
+    if (plan) {
+      const generated = await generateShoppingList(weekStartStr)
+      setItems(generated)
     }
+    setIsLoaded(true)
   }, [weekStartStr])
 
   useEffect(() => {
     loadData()
-    setIsLoaded(true)
   }, [loadData])
 
   const goToPreviousWeek = () => {
@@ -62,8 +54,8 @@ export default function ShoppingPage() {
     setCurrentWeekStart(getWeekStart(new Date()))
   }
 
-  const handleRegenerate = () => {
-    const plan = getWeekPlan(weekStartStr)
+  const handleRegenerate = async () => {
+    const plan = await getWeekPlan(weekStartStr)
     if (!plan) {
       toast({
         title: "No plan for this week",
@@ -73,9 +65,8 @@ export default function ShoppingPage() {
       return
     }
 
-    const generated = generateShoppingList(weekStartStr)
+    const generated = await generateShoppingList(weekStartStr)
     setItems(generated)
-    saveShoppingList(generated)
     toast({ title: "Shopping list regenerated!" })
   }
 
@@ -83,7 +74,6 @@ export default function ShoppingPage() {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], checked: !newItems[index].checked }
     setItems(newItems)
-    saveShoppingList(newItems)
   }
 
   const weekDays = []

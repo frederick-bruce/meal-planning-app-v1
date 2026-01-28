@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback } from "react"
 import { ChevronLeft, ChevronRight, Sparkles, X, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Meal, WeekPlan } from "@/lib/types"
+import type { Meal, WeekPlan } from "@/lib/types"
 import {
   getMeals,
   getWeekPlan,
-  saveWeekPlan,
   generatePlan,
   rerollDay,
   swapDays,
@@ -16,7 +15,8 @@ import {
   getWeekStart,
   formatDate,
   getWeekDays,
-} from "@/lib/store"
+  saveWeekPlan, // Declare saveWeekPlan here
+} from "@/lib/db"
 import { DayCard } from "@/components/day-card"
 
 export default function PlannerPage() {
@@ -32,16 +32,16 @@ export default function PlannerPage() {
 
   const weekStartStr = formatDate(currentWeekStart)
 
-  const loadData = useCallback(() => {
-    const loadedMeals = getMeals()
+  const loadData = useCallback(async () => {
+    const loadedMeals = await getMeals()
     setMeals(loadedMeals)
-    const plan = getWeekPlan(weekStartStr)
+    const plan = await getWeekPlan(weekStartStr)
     setWeekPlan(plan)
+    setIsLoaded(true)
   }, [weekStartStr])
 
   useEffect(() => {
     loadData()
-    setIsLoaded(true)
   }, [loadData])
 
   const goToPreviousWeek = () => {
@@ -66,7 +66,7 @@ export default function PlannerPage() {
     setSwapFirstDay(null)
   }
 
-  const handleGeneratePlan = () => {
+  const handleGeneratePlan = async () => {
     if (meals.length === 0) {
       toast({
         title: "Add some meals first!",
@@ -76,8 +76,7 @@ export default function PlannerPage() {
       return
     }
 
-    const newPlan = generatePlan(weekStartStr)
-    saveWeekPlan(newPlan)
+    const newPlan = await generatePlan(weekStartStr)
     setWeekPlan(newPlan)
     toast({
       title: "Plan generated!",
@@ -85,22 +84,22 @@ export default function PlannerPage() {
     })
   }
 
-  const handleReroll = (dayDate: string) => {
+  const handleReroll = async (dayDate: string) => {
     if (meals.length === 0) return
-    const updatedPlan = rerollDay(weekStartStr, dayDate)
+    const updatedPlan = await rerollDay(weekStartStr, dayDate)
     if (updatedPlan) {
       setWeekPlan(updatedPlan)
       toast({ title: "Meal rerolled!" })
     }
   }
 
-  const handleSwapSelect = (dayDate: string) => {
+  const handleSwapSelect = async (dayDate: string) => {
     if (!swapMode) {
       setSwapMode(true)
       setSwapFirstDay(dayDate)
       toast({ title: "Select another day to swap with" })
     } else if (swapFirstDay && swapFirstDay !== dayDate) {
-      const updatedPlan = swapDays(weekStartStr, swapFirstDay, dayDate)
+      const updatedPlan = await swapDays(weekStartStr, swapFirstDay, dayDate)
       if (updatedPlan) {
         setWeekPlan(updatedPlan)
         toast({ title: "Days swapped!" })
@@ -110,8 +109,8 @@ export default function PlannerPage() {
     }
   }
 
-  const handleMealChange = (dayDate: string, mealId: string | null) => {
-    const updatedPlan = setDayMeal(weekStartStr, dayDate, mealId)
+  const handleMealChange = async (dayDate: string, mealId: string | null) => {
+    const updatedPlan = await setDayMeal(weekStartStr, dayDate, mealId)
     if (updatedPlan) {
       setWeekPlan(updatedPlan)
     }
