@@ -1,10 +1,29 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ChevronLeft, ChevronRight, Sparkles, X, Calendar } from "lucide-react"
+import { ChevronLeft, ChevronRight, Sparkles, X, Calendar, MessageSquare, Check, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import type { Meal, WeekPlan } from "@/lib/types"
+import type { Meal, WeekPlan, Household, MealRequest } from "@/lib/types"
 import {
   getMeals,
   getWeekPlan,
@@ -15,7 +34,11 @@ import {
   getWeekStart,
   formatDate,
   getWeekDays,
-  saveWeekPlan, // Declare saveWeekPlan here
+  getUserHousehold,
+  getMealRequests,
+  createMealRequest,
+  updateMealRequestStatus,
+  deleteMealRequest,
 } from "@/lib/db"
 import { DayCard } from "@/components/day-card"
 
@@ -30,6 +53,13 @@ export default function PlannerPage() {
   const [swapFirstDay, setSwapFirstDay] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // Household state
+  const [household, setHousehold] = useState<Household | null>(null)
+  const [mealRequests, setMealRequests] = useState<MealRequest[]>([])
+  const [showRequestDialog, setShowRequestDialog] = useState(false)
+  const [selectedMealId, setSelectedMealId] = useState<string>("")
+  const [requestNote, setRequestNote] = useState("")
+
   const weekStartStr = formatDate(currentWeekStart)
 
   const loadData = useCallback(async () => {
@@ -37,6 +67,15 @@ export default function PlannerPage() {
     setMeals(loadedMeals)
     const plan = await getWeekPlan(weekStartStr)
     setWeekPlan(plan)
+    
+    // Load household and requests
+    const h = await getUserHousehold()
+    setHousehold(h)
+    if (h) {
+      const requests = await getMealRequests(h.id, weekStartStr)
+      setMealRequests(requests)
+    }
+    
     setIsLoaded(true)
   }, [weekStartStr])
 
@@ -121,6 +160,55 @@ export default function PlannerPage() {
     setSwapFirstDay(null)
   }
 
+  // Meal request handlers
+  const handleCreateRequest = async () => {
+    if (!household || !selectedMealId) return
+    await createMealRequest(household.id, selectedMealId, weekStartStr, requestNote || undefined)
+    const requests = await getMealRequests(household.id, weekStartStr)
+    setMealRequests(requests)
+    setShowRequestDialog(false)
+    setSelectedMealId("")
+    setRequestNote("")
+    toast({ title: "Meal requested!" })
+  }
+
+  const handleApproveRequest = async (request: MealRequest) => {
+    // Find a day without a meal and assign this one
+    if (weekPlan) {
+      const emptyDay = weekPlan.days.find(d => !d.mealId)
+      if (emptyDay) {
+        await setDayMeal(weekStartStr, emptyDay.date, request.meal_id)
+        const updatedPlan = await getWeekPlan(weekStartStr)
+        setWeekPlan(updatedPlan)
+      }
+    }
+    await updateMealRequestStatus(request.id, "planned")
+    if (household) {
+      const requests = await getMealRequests(household.id, weekStartStr)
+      setMealRequests(requests)
+    }
+    toast({ title: "Request approved and added to plan!" })
+  }
+
+  const handleDismissRequest = async (requestId: string) => {
+    await updateMealRequestStatus(requestId, "dismissed")
+    if (household) {
+      const requests = await getMealRequests(household.id, weekStartStr)
+      setMealRequests(requests)
+    }
+    toast({ title: "Request dismissed" })
+  }
+
+  const handleDeleteRequest = async (requestId: string) => {
+    await deleteMealRequest(requestId)
+    if (household) {
+      const requests = await getMealRequests(household.id, weekStartStr)
+      setMealRequests(requests)
+    }
+  }
+
+  const pendingRequests = mealRequests.filter(r => r.status === "pending")
+
   const weekDays = getWeekDays(currentWeekStart)
   const weekEndDate = weekDays[6]
 
@@ -203,6 +291,73 @@ export default function PlannerPage() {
         </div>
       )}
 
+      {/* Meal Requests Section (if in a household) */}
+      {household && (
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Meal Requests
+                {pendingRequests.length > 0 && (
+                  <Badge variant="secondary">{pendingRequests.length}</Badge>
+                )}
+              </CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setShowRequestDialog(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Request Meal
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingRequests.length > 0 ? (
+              <div className="space-y-2">
+                {pendingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {request.meal?.name || "Unknown meal"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Requested by {request.requester?.display_name || "Someone"}
+                        {request.note && ` - "${request.note}"`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-primary hover:text-primary"
+                        onClick={() => handleApproveRequest(request)}
+                        title="Add to plan"
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDismissRequest(request.id)}
+                        title="Dismiss"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No pending requests. Household members can request meals they'd like this week.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Week Grid */}
       {weekPlan ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
@@ -238,6 +393,52 @@ export default function PlannerPage() {
           </Button>
         </div>
       )}
+
+      {/* Request Meal Dialog */}
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request a Meal</DialogTitle>
+            <DialogDescription>
+              Request a meal for this week. The meal planner can approve or dismiss requests.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="mealSelect">Select Meal</Label>
+              <Select value={selectedMealId} onValueChange={setSelectedMealId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a meal..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {meals.map((meal) => (
+                    <SelectItem key={meal.id} value={meal.id}>
+                      {meal.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="requestNote">Note (optional)</Label>
+              <Input
+                id="requestNote"
+                value={requestNote}
+                onChange={(e) => setRequestNote(e.target.value)}
+                placeholder="e.g., It's been a while since we had this!"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRequestDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateRequest} disabled={!selectedMealId}>
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

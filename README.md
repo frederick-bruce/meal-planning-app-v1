@@ -14,6 +14,8 @@ MealMind is a meal planning app that helps busy people organize weekly dinners, 
 - **Settings** - Configure how many dinners per week, maximum cook time, ingredients to exclude (allergies/dislikes), and whether to allow meal repeats within a week
 - **Authentication** - Secure email/password auth with Supabase
 - **Cloud Sync** - All data synced to Supabase with Row Level Security (RLS) so your meals are available on any device
+- **Households** - Create or join a household to share meals with family members
+- **Meal Requests** - Household members can request meals they want for the week, which the planner can approve or dismiss
 
 ## Tech Stack
 
@@ -69,7 +71,8 @@ npm run dev
   db.ts                # Database operations (meals, plans, settings)
   types.ts             # TypeScript type definitions
 /scripts/
-  001_create_tables.sql  # Database schema migration
+  001_create_tables.sql    # Core database schema (meals, plans, settings)
+  002_create_households.sql # Households and meal requests schema
 \`\`\`
 
 ## Database Schema
@@ -79,8 +82,11 @@ npm run dev
 | `meals` | User's meal library (name, tags, cook_time_minutes, ingredients as JSONB) |
 | `weekly_plans` | Weekly plans with week_start date and days array mapping dates to meal IDs |
 | `user_settings` | User preferences (dinners_per_week, max_cook_time, excluded_ingredients, allow_repeats) |
+| `households` | Shared household groups with invite codes |
+| `household_members` | Members of households with display names and roles (owner/member) |
+| `meal_requests` | Meal requests from household members for specific weeks |
 
-All tables use Row Level Security (RLS) - users can only access their own data.
+All tables use Row Level Security (RLS) - users can only access their own data, and household members can access shared household data.
 
 ## Roadmap / Future Features
 

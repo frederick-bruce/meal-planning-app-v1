@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import type { Meal, Settings, WeekPlan, DayPlan, ShoppingItem } from "./types"
+import type { Meal, Settings, WeekPlan, DayPlan, ShoppingItem, Household, HouseholdMember, MealRequest } from "./types"
 import { DEFAULT_SETTINGS } from "./types"
 
 // Helper to get the Supabase client
@@ -347,6 +347,322 @@ export async function setDayMeal(weekStart: string, dayDate: string, mealId: str
   await saveWeekPlan(updatedPlan)
   return updatedPlan
 }
+
+// ============================================
+// HOUSEHOLD FUNCTIONS
+// ============================================
+
+// Get user's household (if any)
+export async function getUserHousehold(): Promise<Household | null> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from("household_members")
+    .select("household_id, households(*)")
+    .eq("user_id", user.id)
+    .single()
+
+  if (error || !data) return null
+
+  const household = data.households as unknown as Household
+  return household
+}
+
+// Get household members
+export async function getHouseholdMembers(householdId: string): Promise<HouseholdMember[]> {
+  const supabase = getSupabase()
+  
+  const { data, error } = await supabase
+    .from("household_members")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("joined_at", { ascending: true })
+
+  if (error) {
+    console.error("Error fetching household members:", error)
+    return []
+  }
+
+  return data || []
+}
+
+// Create a new household
+export async function createHousehold(name: string, displayName: string): Promise<Household | null> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  // Generate invite code
+  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+
+  const { data: household, error: householdError } = await supabase
+    .from("households")
+    .insert({
+      name,
+      invite_code: inviteCode,
+      created_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (householdError || !household) {
+    console.error("Error creating household:", householdError)
+    return null
+  }
+
+  // Add creator as owner
+  const { error: memberError } = await supabase
+    .from("household_members")
+    .insert({
+      household_id: household.id,
+      user_id: user.id,
+      display_name: displayName,
+      role: "owner",
+    })
+
+  if (memberError) {
+    console.error("Error adding owner to household:", memberError)
+    // Rollback household creation
+    await supabase.from("households").delete().eq("id", household.id)
+    return null
+  }
+
+  return household
+}
+
+// Join a household with invite code
+export async function joinHousehold(inviteCode: string, displayName: string): Promise<Household | null> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  // Find household by invite code
+  const { data: household, error: findError } = await supabase
+    .from("households")
+    .select("*")
+    .eq("invite_code", inviteCode.toUpperCase())
+    .single()
+
+  if (findError || !household) {
+    console.error("Household not found:", findError)
+    return null
+  }
+
+  // Check if already a member
+  const { data: existingMember } = await supabase
+    .from("household_members")
+    .select("id")
+    .eq("household_id", household.id)
+    .eq("user_id", user.id)
+    .single()
+
+  if (existingMember) {
+    return household // Already a member
+  }
+
+  // Add as member
+  const { error: memberError } = await supabase
+    .from("household_members")
+    .insert({
+      household_id: household.id,
+      user_id: user.id,
+      display_name: displayName,
+      role: "member",
+    })
+
+  if (memberError) {
+    console.error("Error joining household:", memberError)
+    return null
+  }
+
+  return household
+}
+
+// Leave household
+export async function leaveHousehold(): Promise<boolean> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return false
+
+  const { error } = await supabase
+    .from("household_members")
+    .delete()
+    .eq("user_id", user.id)
+
+  if (error) {
+    console.error("Error leaving household:", error)
+    return false
+  }
+  return true
+}
+
+// Get current user's member info
+export async function getCurrentMember(): Promise<HouseholdMember | null> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from("household_members")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()
+
+  if (error || !data) return null
+  return data
+}
+
+// ============================================
+// MEAL REQUEST FUNCTIONS
+// ============================================
+
+// Get meal requests for a week
+export async function getMealRequests(householdId: string, weekStart: string): Promise<MealRequest[]> {
+  const supabase = getSupabase()
+  
+  const { data, error } = await supabase
+    .from("meal_requests")
+    .select(`
+      *,
+      meals (id, name, tags, cook_time_minutes, ingredients),
+      household_members!meal_requests_requested_by_fkey (id, display_name)
+    `)
+    .eq("household_id", householdId)
+    .eq("week_start", weekStart)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching meal requests:", error)
+    return []
+  }
+
+  return (data || []).map((req) => ({
+    id: req.id,
+    household_id: req.household_id,
+    meal_id: req.meal_id,
+    requested_by: req.requested_by,
+    week_start: req.week_start,
+    note: req.note,
+    status: req.status,
+    created_at: req.created_at,
+    meal: req.meals ? {
+      id: req.meals.id,
+      name: req.meals.name,
+      tags: req.meals.tags || [],
+      cookTimeMinutes: req.meals.cook_time_minutes,
+      ingredients: req.meals.ingredients || [],
+    } : undefined,
+    requester: req.household_members ? {
+      id: req.household_members.id,
+      display_name: req.household_members.display_name,
+    } as HouseholdMember : undefined,
+  }))
+}
+
+// Create a meal request
+export async function createMealRequest(
+  householdId: string,
+  mealId: string,
+  weekStart: string,
+  note?: string
+): Promise<MealRequest | null> {
+  const supabase = getSupabase()
+  const member = await getCurrentMember()
+  
+  if (!member) return null
+
+  const { data, error } = await supabase
+    .from("meal_requests")
+    .insert({
+      household_id: householdId,
+      meal_id: mealId,
+      requested_by: member.id,
+      week_start: weekStart,
+      note,
+      status: "pending",
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error("Error creating meal request:", error)
+    return null
+  }
+
+  return data
+}
+
+// Update meal request status
+export async function updateMealRequestStatus(
+  requestId: string,
+  status: "pending" | "planned" | "dismissed"
+): Promise<boolean> {
+  const supabase = getSupabase()
+  
+  const { error } = await supabase
+    .from("meal_requests")
+    .update({ status })
+    .eq("id", requestId)
+
+  if (error) {
+    console.error("Error updating meal request:", error)
+    return false
+  }
+  return true
+}
+
+// Delete a meal request
+export async function deleteMealRequest(requestId: string): Promise<boolean> {
+  const supabase = getSupabase()
+  
+  const { error } = await supabase
+    .from("meal_requests")
+    .delete()
+    .eq("id", requestId)
+
+  if (error) {
+    console.error("Error deleting meal request:", error)
+    return false
+  }
+  return true
+}
+
+// Get household meals (shared meals from all members)
+export async function getHouseholdMeals(householdId: string): Promise<Meal[]> {
+  const supabase = getSupabase()
+  
+  const { data, error } = await supabase
+    .from("meals")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching household meals:", error)
+    return []
+  }
+
+  return (data || []).map((meal) => ({
+    id: meal.id,
+    user_id: meal.user_id,
+    name: meal.name,
+    tags: meal.tags || [],
+    cookTimeMinutes: meal.cook_time_minutes,
+    ingredients: meal.ingredients || [],
+    created_at: meal.created_at,
+  }))
+}
+
+// ============================================
+// SHOPPING LIST
+// ============================================
 
 // Generate shopping list from week plan
 export async function generateShoppingList(weekStart: string): Promise<ShoppingItem[]> {
