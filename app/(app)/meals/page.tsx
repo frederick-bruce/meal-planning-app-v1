@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import type { Meal, Ingredient } from "@/lib/types"
+import type { Meal, Ingredient, Nutrition } from "@/lib/types"
 import { getMeals, addMeal, updateMeal, deleteMeal, seedSampleMeals } from "@/lib/db"
 import { MealForm } from "@/components/meal-form"
 import { MealCard } from "@/components/meal-card"
@@ -54,6 +54,10 @@ export default function MealsPage() {
     name: string
     cookTimeMinutes: number
     ingredients: Ingredient[]
+    instructions: string[]
+    imageUrl: string | null
+    servings: number | null
+    nutrition: Nutrition | null
     tags: string[]
   } | null>(null)
   
@@ -98,16 +102,38 @@ export default function MealsPage() {
 
   const handleSubmit = async (mealData: Omit<Meal, "id"> & { id?: string }) => {
     if (mealData.id) {
-      await updateMeal(mealData as Meal)
-      toast({ title: "Meal updated successfully" })
+      const ok = await updateMeal(mealData as Meal)
+      if (ok) {
+        toast({ title: "Meal updated successfully" })
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Could not update this meal. Check console logs for details.",
+          variant: "destructive",
+        })
+        return
+      }
     } else {
-      await addMeal({
+      const created = await addMeal({
         name: mealData.name,
         tags: mealData.tags,
         cookTimeMinutes: mealData.cookTimeMinutes,
         ingredients: mealData.ingredients,
+        instructions: mealData.instructions,
+        imageUrl: mealData.imageUrl,
+        servings: mealData.servings,
+        nutrition: mealData.nutrition,
       })
-      toast({ title: "Meal added successfully" })
+      if (created) {
+        toast({ title: "Meal added successfully" })
+      } else {
+        toast({
+          title: "Add failed",
+          description: "Could not save this meal. Check console logs for details.",
+          variant: "destructive",
+        })
+        return
+      }
     }
     await loadMeals()
     setIsDialogOpen(false)
@@ -160,6 +186,10 @@ export default function MealsPage() {
         name: data.name,
         cookTimeMinutes: data.cookTimeMinutes,
         ingredients: data.ingredients,
+        instructions: Array.isArray(data.instructions) ? data.instructions : [],
+        imageUrl: typeof data.imageUrl === "string" ? data.imageUrl : null,
+        servings: typeof data.servings === "number" ? data.servings : null,
+        nutrition: data.nutrition && typeof data.nutrition === "object" ? data.nutrition : null,
         tags: data.tags,
       })
       
@@ -180,14 +210,27 @@ export default function MealsPage() {
 
   const handleSaveImportedRecipe = async () => {
     if (!importedRecipe) return
-    
-    await addMeal({
+
+    const created = await addMeal({
       name: importedRecipe.name,
       tags: importedRecipe.tags,
       cookTimeMinutes: importedRecipe.cookTimeMinutes,
       ingredients: importedRecipe.ingredients,
+      instructions: importedRecipe.instructions,
+      imageUrl: importedRecipe.imageUrl ?? undefined,
+      servings: importedRecipe.servings ?? undefined,
+      nutrition: importedRecipe.nutrition ?? undefined,
     })
-    
+
+    if (!created) {
+      toast({
+        title: "Save failed",
+        description: "Could not save this imported recipe. Check console logs for details.",
+        variant: "destructive",
+      })
+      return
+    }
+
     await loadMeals()
     setShowImportDialog(false)
     setImportUrl("")
@@ -426,6 +469,17 @@ export default function MealsPage() {
           ) : (
             <div className="space-y-4 py-4">
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                {importedRecipe.imageUrl && (
+                  <div className="overflow-hidden rounded-lg border border-border bg-card">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={importedRecipe.imageUrl}
+                      alt={importedRecipe.name}
+                      className="w-full h-40 object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <div>
                   <Label className="text-xs text-muted-foreground">Recipe Name</Label>
                   <p className="font-medium text-foreground">{importedRecipe.name}</p>
@@ -439,6 +493,13 @@ export default function MealsPage() {
                       {importedRecipe.cookTimeMinutes} min
                     </p>
                   </div>
+
+                  {typeof importedRecipe.servings === "number" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Servings</Label>
+                      <p className="text-sm text-foreground">{importedRecipe.servings}</p>
+                    </div>
+                  )}
                   
                   {importedRecipe.tags.length > 0 && (
                     <div>
@@ -453,6 +514,38 @@ export default function MealsPage() {
                     </div>
                   )}
                 </div>
+
+                {importedRecipe.nutrition && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Nutrition (per serving)</Label>
+                    <div className="mt-1 flex flex-wrap gap-2 text-sm text-foreground">
+                      {typeof importedRecipe.nutrition.calories === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.calories} cal</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.proteinG === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.proteinG}g protein</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.carbsG === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.carbsG}g carbs</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.fatG === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.fatG}g fat</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.fiberG === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.fiberG}g fiber</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.sugarG === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.sugarG}g sugar</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.sodiumMg === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.sodiumMg}mg sodium</Badge>
+                      )}
+                      {typeof importedRecipe.nutrition.cholesterolMg === "number" && (
+                        <Badge variant="secondary">{importedRecipe.nutrition.cholesterolMg}mg cholesterol</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 <div>
                   <Label className="text-xs text-muted-foreground">
@@ -472,6 +565,26 @@ export default function MealsPage() {
                     )}
                   </ul>
                 </div>
+
+                {importedRecipe.instructions.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Instructions ({importedRecipe.instructions.length})
+                    </Label>
+                    <ol className="mt-1 text-sm text-foreground max-h-32 overflow-y-auto space-y-1 list-decimal list-inside">
+                      {importedRecipe.instructions.slice(0, 5).map((step, i) => (
+                        <li key={i} className="text-sm">
+                          {step}
+                        </li>
+                      ))}
+                      {importedRecipe.instructions.length > 5 && (
+                        <li className="text-muted-foreground">
+                          +{importedRecipe.instructions.length - 5} more...
+                        </li>
+                      )}
+                    </ol>
+                  </div>
+                )}
               </div>
               
               <div className="flex justify-between">

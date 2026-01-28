@@ -10,7 +10,24 @@ export interface Meal {
   tags: string[]
   cookTimeMinutes: number
   ingredients: Ingredient[]
+  instructions?: string[]
+  imageUrl?: string
+  servings?: number
+  nutrition?: Nutrition
   created_at?: string
+}
+
+export interface Nutrition {
+  calories?: number
+  proteinG?: number
+  fatG?: number
+  saturatedFatG?: number
+  transFatG?: number
+  carbsG?: number
+  fiberG?: number
+  sugarG?: number
+  sodiumMg?: number
+  cholesterolMg?: number
 }
 
 export interface Settings {

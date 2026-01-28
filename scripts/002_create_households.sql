@@ -105,6 +105,14 @@ create policy "Users can delete their own requests" on public.meal_requests
 -- Update meals table to optionally belong to a household (shared meals)
 alter table public.meals add column if not exists household_id uuid references public.households(id) on delete set null;
 
+-- Store imported recipe instructions (JSON array of strings)
+alter table public.meals add column if not exists instructions jsonb default '[]';
+
+-- Store imported recipe image + servings + nutrition
+alter table public.meals add column if not exists image_url text;
+alter table public.meals add column if not exists servings integer;
+alter table public.meals add column if not exists nutrition jsonb;
+
 -- Drop existing policies on meals to recreate with household support
 drop policy if exists "Users can view their own meals" on public.meals;
 drop policy if exists "Users can insert their own meals" on public.meals;

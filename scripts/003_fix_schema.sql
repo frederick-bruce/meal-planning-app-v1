@@ -5,6 +5,20 @@
 alter table public.meals 
   add column if not exists cook_time_minutes integer default 30;
 
+-- Add instructions column (used by recipe import)
+alter table public.meals
+  add column if not exists instructions jsonb default '[]';
+
+-- Add image/servings/nutrition columns (used by recipe import)
+alter table public.meals
+  add column if not exists image_url text;
+
+alter table public.meals
+  add column if not exists servings integer;
+
+alter table public.meals
+  add column if not exists nutrition jsonb;
+
 -- If cook_time exists, copy data and drop it
 do $$ 
 begin

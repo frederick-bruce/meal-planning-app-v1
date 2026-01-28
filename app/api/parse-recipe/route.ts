@@ -4,6 +4,21 @@ interface ParsedRecipe {
   name: string
   cookTimeMinutes: number
   ingredients: { name: string; quantity?: string }[]
+  instructions: string[]
+  imageUrl: string | null
+  servings: number | null
+  nutrition: {
+    calories?: number
+    proteinG?: number
+    fatG?: number
+    saturatedFatG?: number
+    transFatG?: number
+    carbsG?: number
+    fiberG?: number
+    sugarG?: number
+    sodiumMg?: number
+    cholesterolMg?: number
+  } | null
   tags: string[]
   sourceUrl: string
 }
@@ -69,6 +84,10 @@ function parseJsonLd(html: string): ParsedRecipe | null {
             name: recipe.name || "Untitled Recipe",
             cookTimeMinutes: parseDuration(recipe.totalTime || recipe.cookTime || recipe.prepTime) || 30,
             ingredients: parseIngredients(recipe.recipeIngredient || []),
+            instructions: parseInstructions(recipe.recipeInstructions),
+            imageUrl: parseImageUrl(recipe.image),
+            servings: parseServings(recipe.recipeYield),
+            nutrition: parseNutrition(recipe.nutrition),
             tags: parseTags(recipe),
             sourceUrl: recipe.url || "",
           }
@@ -123,6 +142,143 @@ function parseDuration(duration: string | undefined): number | null {
   return null
 }
 
+function parseImageUrl(image: unknown): string | null {
+  if (!image) return null
+
+  if (typeof image === "string") return image
+
+  if (Array.isArray(image)) {
+    for (const item of image) {
+      const url = parseImageUrl(item)
+      if (url) return url
+    }
+    return null
+  }
+
+  if (typeof image === "object") {
+    const obj = image as Record<string, unknown>
+    const url = obj.url
+    if (typeof url === "string") return url
+    if (Array.isArray(url)) {
+      const first = url.find((u) => typeof u === "string")
+      return typeof first === "string" ? first : null
+    }
+  }
+
+  return null
+}
+
+function parseServings(recipeYield: unknown): number | null {
+  if (!recipeYield) return null
+
+  const extractNumber = (text: string): number | null => {
+    const match = text.match(/(\d+(?:\.\d+)?)/)
+    if (!match) return null
+    const num = Number(match[1])
+    if (!Number.isFinite(num)) return null
+    return Math.round(num)
+  }
+
+  if (typeof recipeYield === "number") return Math.round(recipeYield)
+  if (typeof recipeYield === "string") return extractNumber(recipeYield)
+
+  if (Array.isArray(recipeYield)) {
+    for (const item of recipeYield) {
+      if (typeof item === "number") return Math.round(item)
+      if (typeof item === "string") {
+        const n = extractNumber(item)
+        if (n) return n
+      }
+    }
+  }
+
+  return null
+}
+
+function parseNutrition(nutrition: unknown): ParsedRecipe["nutrition"] {
+  if (!nutrition || typeof nutrition !== "object") return null
+  const obj = nutrition as Record<string, unknown>
+
+  const parseNumber = (value: unknown): number | undefined => {
+    if (typeof value === "number") return value
+    if (typeof value !== "string") return undefined
+    const match = value.match(/(\d+(?:\.\d+)?)/)
+    if (!match) return undefined
+    const num = Number(match[1])
+    return Number.isFinite(num) ? num : undefined
+  }
+
+  const parseCalories = (value: unknown): number | undefined => {
+    const num = parseNumber(value)
+    return typeof num === "number" ? Math.round(num) : undefined
+  }
+
+  const parseMass = (value: unknown): { amount: number; unit: "g" | "mg" | null } | undefined => {
+    if (typeof value === "number") return { amount: value, unit: null }
+    if (typeof value !== "string") return undefined
+    const text = value.toLowerCase()
+    const match = text.match(/(\d+(?:\.\d+)?)\s*(mg|g)?/)
+    if (!match) return undefined
+    const amount = Number(match[1])
+    if (!Number.isFinite(amount)) return undefined
+    const unit = match[2] === "mg" ? "mg" : match[2] === "g" ? "g" : null
+    return { amount, unit }
+  }
+
+  const toGrams = (value: unknown): number | undefined => {
+    const mass = parseMass(value)
+    if (!mass) return undefined
+    if (mass.unit === "mg") return mass.amount / 1000
+    return mass.amount
+  }
+
+  const toMg = (value: unknown): number | undefined => {
+    const mass = parseMass(value)
+    if (!mass) return undefined
+    if (mass.unit === "g") return mass.amount * 1000
+    return mass.amount
+  }
+
+  const calories = parseCalories(obj.calories)
+  const proteinG = toGrams(obj.proteinContent)
+  const fatG = toGrams(obj.fatContent)
+  const saturatedFatG = toGrams(obj.saturatedFatContent)
+  const transFatG = toGrams(obj.transFatContent)
+  const carbsG = toGrams(obj.carbohydrateContent)
+  const fiberG = toGrams(obj.fiberContent)
+  const sugarG = toGrams(obj.sugarContent)
+  const sodiumMg = toMg(obj.sodiumContent)
+  const cholesterolMg = toMg(obj.cholesterolContent)
+
+  if (
+    calories === undefined &&
+    proteinG === undefined &&
+    fatG === undefined &&
+    saturatedFatG === undefined &&
+    transFatG === undefined &&
+    carbsG === undefined
+    && fiberG === undefined
+    && sugarG === undefined
+    && sodiumMg === undefined
+    && cholesterolMg === undefined
+  ) {
+    return null
+  }
+
+  return {
+    calories,
+    proteinG,
+    fatG,
+    saturatedFatG,
+    transFatG,
+    carbsG,
+    fiberG,
+    sugarG,
+    sodiumMg,
+    cholesterolMg,
+  }
+}
+
 function parseIngredients(ingredients: unknown[]): { name: string; quantity?: string }[] {
   return ingredients
     .filter((ing): ing is string => typeof ing === "string")
@@ -140,6 +296,69 @@ function parseIngredients(ingredients: unknown[]): { name: string; quantity?: st
       return { name: ing.trim() }
     })
     .filter((ing) => ing.name.length > 0)
+}
+
+function parseInstructions(recipeInstructions: unknown): string[] {
+  const steps: string[] = []
+
+  const pushStep = (text: string) => {
+    const cleaned = text.replace(/\s+/g, " ").trim()
+    if (cleaned) steps.push(cleaned)
+  }
+
+  const walk = (value: unknown) => {
+    if (!value) return
+
+    if (typeof value === "string") {
+      // Some sites return a single blob; try to split on newlines.
+      const parts = value
+        .split(/\r?\n/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      if (parts.length > 1) {
+        parts.forEach(pushStep)
+      } else {
+        pushStep(value)
+      }
+      return
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(walk)
+      return
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>
+
+      // HowToSection can have itemListElement
+      if (Array.isArray(obj.itemListElement)) {
+        obj.itemListElement.forEach(walk)
+      }
+
+      // HowToStep often has "text"
+      if (typeof obj.text === "string") {
+        pushStep(obj.text)
+      }
+
+      // Sometimes "name" is the step text
+      if (typeof obj.name === "string" && !obj.text) {
+        pushStep(obj.name)
+      }
+
+      return
+    }
+  }
+
+  walk(recipeInstructions)
+
+  // Deduplicate while keeping order
+  const seen = new Set<string>()
+  return steps.filter((s) => {
+    if (seen.has(s)) return false
+    seen.add(s)
+    return true
+  })
 }
 
 function parseTags(recipe: Record<string, unknown>): string[] {
@@ -182,12 +401,18 @@ function parseMetaTags(html: string, url: string): ParsedRecipe | null {
     // Try to get title from og:title or title tag
     const titleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
                        html.match(/<title[^>]*>([^<]+)<\/title>/i)
+
+    const imageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
     
     if (titleMatch) {
       return {
         name: titleMatch[1].trim(),
         cookTimeMinutes: 30,
         ingredients: [],
+        instructions: [],
+        imageUrl: imageMatch ? imageMatch[1].trim() : null,
+        servings: null,
+        nutrition: null,
         tags: [],
         sourceUrl: url,
       }

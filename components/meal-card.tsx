@@ -1,6 +1,7 @@
 "use client"
 
-import { Clock, Pencil, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { BookOpen, Clock, Pencil, Trash2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,13 @@ export function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
               {meal.ingredients.length} ingredient{meal.ingredients.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+              <Link href={`/meals/${meal.id}`}>
+                <BookOpen className="w-4 h-4" />
+                <span className="sr-only">View recipe for {meal.name}</span>
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -56,6 +56,10 @@ export async function getMeals(): Promise<Meal[]> {
     tags: meal.tags || [],
     cookTimeMinutes: meal.cook_time_minutes,
     ingredients: meal.ingredients || [],
+    instructions: meal.instructions || [],
+    imageUrl: meal.image_url || undefined,
+    servings: typeof meal.servings === "number" ? meal.servings : undefined,
+    nutrition: meal.nutrition || undefined,
     created_at: meal.created_at,
   }))
 }
@@ -66,21 +70,74 @@ export async function addMeal(meal: Omit<Meal, "id" | "user_id" | "created_at">)
   
   if (!user) return null
 
-  const { data, error } = await supabase
+  const baseInsert = {
+    user_id: user.id,
+    name: meal.name,
+    tags: meal.tags,
+    cook_time_minutes: meal.cookTimeMinutes,
+    ingredients: meal.ingredients,
+  }
+
+  const extendedInsert = {
+    ...baseInsert,
+    instructions: meal.instructions ?? [],
+    image_url: meal.imageUrl ?? null,
+    servings: meal.servings ?? null,
+    nutrition: meal.nutrition ?? null,
+  }
+
+  let { data, error } = await supabase
     .from("meals")
-    .insert({
-      user_id: user.id,
-      name: meal.name,
-      tags: meal.tags,
-      cook_time_minutes: meal.cookTimeMinutes,
-      ingredients: meal.ingredients,
-    })
+    .insert(extendedInsert)
     .select()
     .single()
 
   if (error) {
-    console.error("Error adding meal:", error)
-    return null
+    const message = String((error as any)?.message ?? "")
+    const code = String((error as any)?.code ?? "")
+    const looksLikeMissingColumn =
+      /column .* does not exist/i.test(message) ||
+      /could not find the .* column/i.test(message) ||
+      /schema cache/i.test(message) ||
+      code === "42703" ||
+      code === "PGRST204"
+
+    // If the DB hasn't been migrated yet, retry with legacy columns so the user can still add meals.
+    if (looksLikeMissingColumn) {
+      console.warn("Meals table schema missing newer columns; retrying insert without recipe extras.", {
+        message: (error as any)?.message,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+        code: (error as any)?.code,
+      })
+
+      const retry = await supabase
+        .from("meals")
+        .insert(baseInsert)
+        .select()
+        .single()
+
+      if (retry.error) {
+        console.error("Error adding meal (retry):", {
+          message: (retry.error as any)?.message,
+          details: (retry.error as any)?.details,
+          hint: (retry.error as any)?.hint,
+          code: (retry.error as any)?.code,
+        })
+        return null
+      }
+
+      data = retry.data
+      error = null
+    } else {
+      console.error("Error adding meal:", {
+        message: (error as any)?.message,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+        code: (error as any)?.code,
+      })
+      return null
+    }
   }
 
   return {
@@ -90,20 +147,42 @@ export async function addMeal(meal: Omit<Meal, "id" | "user_id" | "created_at">)
     tags: data.tags || [],
     cookTimeMinutes: data.cook_time_minutes,
     ingredients: data.ingredients || [],
+    instructions: data.instructions || [],
+    imageUrl: data.image_url || undefined,
+    servings: typeof data.servings === "number" ? data.servings : undefined,
+    nutrition: data.nutrition || undefined,
     created_at: data.created_at,
   }
 }
 
 export async function updateMeal(meal: Meal): Promise<boolean> {
   const supabase = getSupabase()
+  const updatePayload: Record<string, unknown> = {
+    name: meal.name,
+    tags: meal.tags,
+    cook_time_minutes: meal.cookTimeMinutes,
+    ingredients: meal.ingredients,
+  }
+
+  if (Array.isArray(meal.instructions)) {
+    updatePayload.instructions = meal.instructions
+  }
+
+  if (typeof meal.imageUrl === "string") {
+    updatePayload.image_url = meal.imageUrl
+  }
+
+  if (typeof meal.servings === "number") {
+    updatePayload.servings = meal.servings
+  }
+
+  if (meal.nutrition && typeof meal.nutrition === "object") {
+    updatePayload.nutrition = meal.nutrition
+  }
+
   const { error } = await supabase
     .from("meals")
-    .update({
-      name: meal.name,
-      tags: meal.tags,
-      cook_time_minutes: meal.cookTimeMinutes,
-      ingredients: meal.ingredients,
-    })
+    .update(updatePayload)
     .eq("id", meal.id)
 
   if (error) {
@@ -122,6 +201,38 @@ export async function deleteMeal(mealId: string): Promise<boolean> {
     return false
   }
   return true
+}
+
+export async function getMeal(mealId: string): Promise<Meal | null> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from("meals")
+    .select("*")
+    .eq("id", mealId)
+    .single()
+
+  if (error || !data) {
+    console.error("Error fetching meal:", error)
+    return null
+  }
+
+  return {
+    id: data.id,
+    user_id: data.user_id,
+    name: data.name,
+    tags: data.tags || [],
+    cookTimeMinutes: data.cook_time_minutes,
+    ingredients: data.ingredients || [],
+    instructions: data.instructions || [],
+    imageUrl: data.image_url || undefined,
+    servings: typeof data.servings === "number" ? data.servings : undefined,
+    nutrition: data.nutrition || undefined,
+    created_at: data.created_at,
+  }
 }
 
 // Settings
@@ -852,6 +963,10 @@ export async function getHouseholdMeals(householdId: string): Promise<Meal[]> {
     tags: meal.tags || [],
     cookTimeMinutes: meal.cook_time_minutes,
     ingredients: meal.ingredients || [],
+    instructions: meal.instructions || [],
+    imageUrl: meal.image_url || undefined,
+    servings: typeof meal.servings === "number" ? meal.servings : undefined,
+    nutrition: meal.nutrition || undefined,
     created_at: meal.created_at,
   }))
 }

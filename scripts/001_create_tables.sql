@@ -9,6 +9,10 @@ create table if not exists public.meals (
   tags text[] default '{}',
   cook_time_minutes integer default 30,
   ingredients jsonb default '[]',
+  instructions jsonb default '[]',
+  image_url text,
+  servings integer,
+  nutrition jsonb,
   created_at timestamptz default now()
 );
 
