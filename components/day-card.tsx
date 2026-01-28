@@ -91,7 +91,7 @@ export function DayCard({
         {meal ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
                 <UtensilsCrossed className="w-4 h-4 text-primary" />
               </div>
               <span className="font-medium text-foreground truncate">
@@ -104,7 +104,7 @@ export function DayCard({
           </div>
         ) : (
           <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0">
               <UtensilsCrossed className="w-4 h-4" />
             </div>
             <span className="text-sm">Off / Leftovers</span>
