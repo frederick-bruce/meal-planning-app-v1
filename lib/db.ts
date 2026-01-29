@@ -741,6 +741,14 @@ export async function createHousehold(name: string, displayName: string): Promis
 
 // Join a household with invite code
 export async function joinHousehold(inviteCode: string, displayName: string): Promise<Household | null> {
+  const result = await joinHouseholdDetailed(inviteCode, displayName)
+  return result.household
+}
+
+export async function joinHouseholdDetailed(
+  inviteCode: string,
+  displayName: string,
+): Promise<{ household: Household | null; error?: { message: string; status?: number; code?: string } }> {
   try {
     const response = await fetch("/api/households/join", {
       method: "POST",
@@ -751,18 +759,44 @@ export async function joinHousehold(inviteCode: string, displayName: string): Pr
     const data = await response.json().catch(() => null)
 
     if (!response.ok || !data) {
+      const message =
+        (data && typeof data === "object" && "error" in data && typeof (data as any).error === "string"
+          ? String((data as any).error)
+          : response.status === 404
+            ? "Invalid invite code"
+            : response.status === 401
+              ? "Unauthorized"
+              : "Failed to join household")
+
       console.error("Error joining household:", data)
-      return null
+      return {
+        household: null,
+        error: {
+          message,
+          status: response.status,
+          code:
+            data && typeof data === "object" && "code" in data
+              ? String((data as any).code)
+              : undefined,
+        },
+      }
     }
 
     return {
-      ...data,
-      created_by: (data as any).created_by ?? (data as any).owner_id,
-      owner_id: (data as any).owner_id ?? (data as any).created_by,
-    } as Household
+      household: {
+        ...data,
+        created_by: (data as any).created_by ?? (data as any).owner_id,
+        owner_id: (data as any).owner_id ?? (data as any).created_by,
+      } as Household,
+    }
   } catch (error) {
     console.error("Error joining household:", error)
-    return null
+    return {
+      household: null,
+      error: {
+        message: error instanceof Error ? error.message : "Failed to join household",
+      },
+    }
   }
 }
 

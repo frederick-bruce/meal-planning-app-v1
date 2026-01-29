@@ -25,7 +25,7 @@ import {
   getUserHousehold,
   getHouseholdMembers,
   createHousehold,
-  joinHousehold,
+  joinHouseholdDetailed,
   leaveHousehold,
 } from "@/lib/db"
 
@@ -42,7 +42,8 @@ export default function SettingsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showJoinDialog, setShowJoinDialog] = useState(false)
   const [householdName, setHouseholdName] = useState("")
-  const [displayName, setDisplayName] = useState("")
+  const [createDisplayName, setCreateDisplayName] = useState("")
+  const [joinDisplayName, setJoinDisplayName] = useState("")
   const [inviteCode, setInviteCode] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -95,15 +96,15 @@ export default function SettingsPage() {
   }
 
   const handleCreateHousehold = async () => {
-    if (!householdName.trim() || !displayName.trim()) return
+    if (!householdName.trim() || !createDisplayName.trim()) return
     setIsSubmitting(true)
-    const h = await createHousehold(householdName.trim(), displayName.trim())
+    const h = await createHousehold(householdName.trim(), createDisplayName.trim())
     setIsSubmitting(false)
     if (h) {
       await loadHousehold()
       setShowCreateDialog(false)
       setHouseholdName("")
-      setDisplayName("")
+      setCreateDisplayName("")
       toast({
         title: "Household created!",
         description: `Share the code ${h.invite_code} with your family.`,
@@ -117,23 +118,35 @@ export default function SettingsPage() {
   }
 
   const handleJoinHousehold = async () => {
-    if (!inviteCode.trim() || !displayName.trim()) return
+    if (!inviteCode.trim() || !joinDisplayName.trim()) return
     setIsSubmitting(true)
-    const h = await joinHousehold(inviteCode.trim(), displayName.trim())
+    const result = await joinHouseholdDetailed(inviteCode.trim(), joinDisplayName.trim())
     setIsSubmitting(false)
-    if (h) {
+    if (result.household) {
       await loadHousehold()
       setShowJoinDialog(false)
       setInviteCode("")
-      setDisplayName("")
+      setJoinDisplayName("")
       toast({
         title: "Joined household!",
-        description: `You're now part of ${h.name}.`,
+        description: `You're now part of ${result.household.name}.`,
       })
     } else {
+      const status = result.error?.status
+      const message = result.error?.message
+
       toast({
-        title: "Invalid invite code",
-        description: "Please check the code and try again.",
+        title:
+          status === 401
+            ? "Please log in"
+            : status === 404
+              ? "Invalid invite code"
+              : "Couldn't join household",
+        description:
+          message ||
+          (status === 404
+            ? "Please check the code and try again."
+            : "Please try again in a moment."),
         variant: "destructive",
       })
     }
@@ -378,7 +391,16 @@ export default function SettingsPage() {
       </div>
 
       {/* Create Household Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open)
+          if (!open) {
+            setHouseholdName("")
+            setCreateDisplayName("")
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Household</DialogTitle>
@@ -400,8 +422,8 @@ export default function SettingsPage() {
               <Label htmlFor="createDisplayName">Your Display Name</Label>
               <Input
                 id="createDisplayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                value={createDisplayName}
+                onChange={(e) => setCreateDisplayName(e.target.value)}
                 placeholder="e.g., Mom, Dad, Alex"
               />
             </div>
@@ -410,7 +432,10 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateHousehold} disabled={isSubmitting || !householdName.trim() || !displayName.trim()}>
+            <Button
+              onClick={handleCreateHousehold}
+              disabled={isSubmitting || !householdName.trim() || !createDisplayName.trim()}
+            >
               {isSubmitting ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
@@ -418,7 +443,16 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* Join Household Dialog */}
-      <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+      <Dialog
+        open={showJoinDialog}
+        onOpenChange={(open) => {
+          setShowJoinDialog(open)
+          if (!open) {
+            setInviteCode("")
+            setJoinDisplayName("")
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Join Household</DialogTitle>
@@ -442,8 +476,8 @@ export default function SettingsPage() {
               <Label htmlFor="joinDisplayName">Your Display Name</Label>
               <Input
                 id="joinDisplayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                value={joinDisplayName}
+                onChange={(e) => setJoinDisplayName(e.target.value)}
                 placeholder="e.g., Mom, Dad, Alex"
               />
             </div>
@@ -452,7 +486,10 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={() => setShowJoinDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleJoinHousehold} disabled={isSubmitting || !inviteCode.trim() || !displayName.trim()}>
+            <Button
+              onClick={handleJoinHousehold}
+              disabled={isSubmitting || !inviteCode.trim() || !joinDisplayName.trim()}
+            >
               {isSubmitting ? "Joining..." : "Join"}
             </Button>
           </DialogFooter>
