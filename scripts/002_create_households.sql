@@ -111,6 +111,50 @@ as $$
   );
 $$;
 
+-- Join a household by invite code.
+-- This is SECURITY DEFINER so a non-member can join without being able to SELECT the household row under RLS.
+drop function if exists public.join_household_by_invite(invite_code text, display_name text);
+create or replace function public.join_household_by_invite(invite_code text, display_name text)
+returns public.households
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  target_household public.households%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Unauthorized';
+  end if;
+
+  select *
+  into target_household
+  from public.households
+  where upper(public.households.invite_code) = upper(join_household_by_invite.invite_code)
+  limit 1;
+
+  if not found then
+    return null;
+  end if;
+
+  insert into public.household_members (household_id, user_id, display_name, role)
+  values (
+    target_household.id,
+    auth.uid(),
+    coalesce(nullif(join_household_by_invite.display_name, ''), 'Member'),
+    'member'
+  )
+  on conflict (household_id, user_id) do update
+  set display_name = excluded.display_name;
+
+  return target_household;
+end;
+$$;
+
+revoke all on function public.join_household_by_invite(text, text) from public;
+grant execute on function public.join_household_by_invite(text, text) to authenticated;
+
 -- Policies are not created with IF NOT EXISTS in Postgres, so make this script re-runnable.
 -- Households policies
 drop policy if exists "Users can view their households" on public.households;

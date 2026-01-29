@@ -741,51 +741,29 @@ export async function createHousehold(name: string, displayName: string): Promis
 
 // Join a household with invite code
 export async function joinHousehold(inviteCode: string, displayName: string): Promise<Household | null> {
-  const supabase = getSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return null
-
-  // Find household by invite code
-  const { data: household, error: findError } = await supabase
-    .from("households")
-    .select("*")
-    .eq("invite_code", inviteCode.toUpperCase())
-    .single()
-
-  if (findError || !household) {
-    console.error("Household not found:", findError)
-    return null
-  }
-
-  // Check if already a member
-  const { data: existingMember } = await supabase
-    .from("household_members")
-    .select("id")
-    .eq("household_id", household.id)
-    .eq("user_id", user.id)
-    .single()
-
-  if (existingMember) {
-    return household // Already a member
-  }
-
-  // Add as member
-  const { error: memberError } = await supabase
-    .from("household_members")
-    .insert({
-      household_id: household.id,
-      user_id: user.id,
-      display_name: displayName,
-      role: "member",
+  try {
+    const response = await fetch("/api/households/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteCode, displayName }),
     })
 
-  if (memberError) {
-    console.error("Error joining household:", memberError)
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok || !data) {
+      console.error("Error joining household:", data)
+      return null
+    }
+
+    return {
+      ...data,
+      created_by: (data as any).created_by ?? (data as any).owner_id,
+      owner_id: (data as any).owner_id ?? (data as any).created_by,
+    } as Household
+  } catch (error) {
+    console.error("Error joining household:", error)
     return null
   }
-
-  return household
 }
 
 // Leave household
