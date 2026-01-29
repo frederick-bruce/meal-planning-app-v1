@@ -236,8 +236,8 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div className="w-full max-w-7xl mx-auto">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
             Weekly Planner
@@ -246,14 +246,14 @@ export default function PlannerPage() {
             Plan your meals for the week ahead
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           {swapMode && (
-            <Button variant="outline" size="sm" onClick={cancelSwap}>
+            <Button variant="outline" size="sm" onClick={cancelSwap} className="w-full sm:w-auto">
               <X className="w-4 h-4 mr-1" />
               Cancel Swap
             </Button>
           )}
-          <Button onClick={handleGeneratePlan}>
+          <Button onClick={handleGeneratePlan} className="w-full sm:w-auto">
             <Sparkles className="w-4 h-4 mr-2" />
             Generate Plan
           </Button>
@@ -261,13 +261,13 @@ export default function PlannerPage() {
       </div>
 
       {/* Week Navigation */}
-      <div className="flex items-center justify-between bg-card rounded-lg border border-border p-4 mb-6">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 bg-card rounded-lg border border-border p-3 sm:p-4 mb-6">
         <Button variant="ghost" size="icon" onClick={goToPreviousWeek}>
           <ChevronLeft className="w-5 h-5" />
           <span className="sr-only">Previous week</span>
         </Button>
-        <div className="text-center">
-          <p className="font-medium text-foreground">{formatDateRange()}</p>
+        <div className="text-center px-2 min-w-0">
+          <p className="font-medium text-foreground truncate">{formatDateRange()}</p>
           <Button
             variant="link"
             size="sm"
@@ -295,7 +295,7 @@ export default function PlannerPage() {
       {household && (
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
                 Meal Requests
@@ -303,7 +303,12 @@ export default function PlannerPage() {
                   <Badge variant="secondary">{pendingRequests.length}</Badge>
                 )}
               </CardTitle>
-              <Button size="sm" variant="outline" onClick={() => setShowRequestDialog(true)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowRequestDialog(true)}
+                className="w-full sm:w-auto"
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 Request Meal
               </Button>
@@ -360,20 +365,42 @@ export default function PlannerPage() {
 
       {/* Week Grid */}
       {weekPlan ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
-          {weekPlan.days.map((day) => (
-            <DayCard
-              key={day.date}
-              day={day}
-              meals={meals}
-              isSwapMode={swapMode}
-              isSwapSelected={swapFirstDay === day.date}
-              onReroll={() => handleReroll(day.date)}
-              onSwapSelect={() => handleSwapSelect(day.date)}
-              onMealChange={(mealId) => handleMealChange(day.date, mealId)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Mobile: horizontal scroller */}
+          <div className="md:hidden -mx-4 px-4 overflow-x-auto pb-2">
+            <div className="flex gap-3 min-w-max">
+              {weekPlan.days.map((day) => (
+                <DayCard
+                  key={day.date}
+                  day={day}
+                  meals={meals}
+                  isSwapMode={swapMode}
+                  isSwapSelected={swapFirstDay === day.date}
+                  onReroll={() => handleReroll(day.date)}
+                  onSwapSelect={() => handleSwapSelect(day.date)}
+                  onMealChange={(mealId) => handleMealChange(day.date, mealId)}
+                  className="w-64 shrink-0"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop/tablet: grid */}
+          <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+            {weekPlan.days.map((day) => (
+              <DayCard
+                key={day.date}
+                day={day}
+                meals={meals}
+                isSwapMode={swapMode}
+                isSwapSelected={swapFirstDay === day.date}
+                onReroll={() => handleReroll(day.date)}
+                onSwapSelect={() => handleSwapSelect(day.date)}
+                onMealChange={(mealId) => handleMealChange(day.date, mealId)}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 px-4 border border-dashed border-border rounded-lg bg-muted/30">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">

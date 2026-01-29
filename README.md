@@ -36,76 +36,81 @@ MealMind is a meal planning app that helps busy people organize weekly dinners, 
 ```bash
 git clone https://github.com/frederick-bruce/meal-planning-app-v1.git
 cd meal-planning-app-v1
-npm install
-2) Environment Variables
-Create a .env.local file:
+pnpm install
+```
 
+### 2) Environment Variables
+Create a `.env.local` file:
+
+```bash
 cp .env.example .env.local
+```
+
 Required variables:
 
-NEXT_PUBLIC_SUPABASE_URL
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-NEXT_PUBLIC_SUPABASE_ANON_KEY
+Optional (used on login/sign-up redirect in some setups):
 
-3) Database Setup
-Run these SQL scripts in the Supabase SQL Editor:
+- `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL`
 
-scripts/001_create_tables.sql
+### 3) Database Setup (Supabase)
+Run these SQL scripts in the Supabase SQL Editor.
 
-scripts/002_create_households.sql
+- Fresh project (recommended order):
+  - `scripts/001_create_tables.sql`
+  - `scripts/002_create_households.sql`
 
-4) Run the App
-npm run dev
+- Existing project / upgrading an older schema:
+  - `scripts/003_fix_schema.sql`
+  - `scripts/002_create_households.sql`
+
+Notes:
+
+- `scripts/002_create_households.sql` is designed to be re-runnable (it drops/recreates policies and includes fix-up ALTERs).
+
+### 4) Run the App
+```bash
+pnpm dev
+```
+
 Open http://localhost:3000 to get started.
 
-Project Structure
-/app
-  /(app)/              # Auth-protected routes
-    /meals
-    /planner
-    /shopping
-    /settings
-  /auth/               # Public auth routes
+## Project Structure
 
-/components/
-  /ui/                 # shadcn/ui primitives
-  meal-card.tsx
-  meal-form.tsx
-  day-card.tsx
+- `app/`
+  - `(app)/` — Auth-protected routes
+    - `meals/`, `planner/`, `shopping/`, `settings/`
+  - `auth/` — Public auth routes
+- `components/`
+  - `ui/` — shadcn/ui primitives
+- `lib/`
+  - `supabase/`
+  - `db.ts`, `types.ts`
+- `scripts/`
+  - `001_create_tables.sql`
+  - `002_create_households.sql`
+  - `003_fix_schema.sql`
 
-/lib/
-  /supabase/
-  db.ts
-  types.ts
+## Deploying (Vercel)
 
-/scripts/
-  001_create_tables.sql
-  002_create_households.sql
-Deploying (Vercel)
-Deploy the repo to Vercel
+- Deploy the repo to Vercel
+- Add env vars:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Add your Vercel URL to Supabase Auth redirect URLs
 
-Add env vars:
+## Roadmap
 
-NEXT_PUBLIC_SUPABASE_URL
+- Meal favorites / ratings
+- Leftovers tracking
+- Recipe import from URL
+- Meal history
+- Shareable shopping list
+- PWA support
+- Drag-and-drop planner
 
-NEXT_PUBLIC_SUPABASE_ANON_KEY
+## License
 
-Add your Vercel URL to Supabase Auth redirect URLs
-
-Roadmap
-Meal favorites / ratings
-
-Leftovers tracking
-
-Recipe import from URL
-
-Meal history
-
-Shareable shopping list
-
-PWA support
-
-Drag-and-drop planner
-
-License
 MIT

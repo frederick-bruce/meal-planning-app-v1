@@ -21,6 +21,7 @@ interface DayCardProps {
   onReroll: () => void
   onSwapSelect: () => void
   onMealChange: (mealId: string | null) => void
+  className?: string
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -33,6 +34,7 @@ export function DayCard({
   onReroll,
   onSwapSelect,
   onMealChange,
+  className,
 }: DayCardProps) {
   const date = new Date(day.date)
   const dayName = DAY_NAMES[date.getDay()]
@@ -42,13 +44,14 @@ export function DayCard({
   return (
     <Card
       className={cn(
-        "transition-all",
+        "transition-all py-0 gap-0 h-full",
         isSwapMode && "cursor-pointer hover:border-primary",
-        isSwapSelected && "ring-2 ring-primary border-primary"
+        isSwapSelected && "ring-2 ring-primary border-primary",
+        className
       )}
       onClick={isSwapMode ? onSwapSelect : undefined}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex flex-col h-full">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-medium text-muted-foreground">
@@ -88,28 +91,30 @@ export function DayCard({
           )}
         </div>
 
-        {meal ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                <UtensilsCrossed className="w-4 h-4 text-primary" />
+        <div className="flex-1 min-h-0">
+          {meal ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                  <UtensilsCrossed className="w-4 h-4 text-primary" />
+                </div>
+                <span className="font-medium text-foreground text-sm leading-snug whitespace-normal wrap-break-word">
+                  {meal.name}
+                </span>
               </div>
-              <span className="font-medium text-foreground truncate">
-                {meal.name}
-              </span>
+              <p className="text-xs text-muted-foreground">
+                {meal.cookTimeMinutes} min
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {meal.cookTimeMinutes} min
-            </p>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="w-4 h-4" />
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0">
+                <UtensilsCrossed className="w-4 h-4" />
+              </div>
+              <span className="text-sm">Off / Leftovers</span>
             </div>
-            <span className="text-sm">Off / Leftovers</span>
-          </div>
-        )}
+          )}
+        </div>
 
         {!isSwapMode && (
           <div className="mt-3 pt-3 border-t border-border">
@@ -119,7 +124,7 @@ export function DayCard({
                 onMealChange(value === "off" ? null : value)
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs w-full">
                 <SelectValue placeholder="Choose meal" />
               </SelectTrigger>
               <SelectContent>

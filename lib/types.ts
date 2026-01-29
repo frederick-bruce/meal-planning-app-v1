@@ -68,7 +68,8 @@ export interface Household {
   id: string
   name: string
   invite_code: string
-  created_by: string
+  created_by?: string
+  owner_id?: string
   created_at?: string
 }
 
@@ -79,6 +80,7 @@ export interface HouseholdMember {
   display_name: string
   role: 'owner' | 'member'
   joined_at?: string
+  created_at?: string
 }
 
 export interface MealRequest {

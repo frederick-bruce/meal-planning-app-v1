@@ -670,7 +670,7 @@ export async function getUserHousehold(): Promise<Household | null> {
     .from("household_members")
     .select("household_id, households(*)")
     .eq("user_id", user.id)
-    .single()
+    .maybeSingle()
 
   if (error || !data) return null
 
@@ -681,64 +681,62 @@ export async function getUserHousehold(): Promise<Household | null> {
 // Get household members
 export async function getHouseholdMembers(householdId: string): Promise<HouseholdMember[]> {
   const supabase = getSupabase()
-  
-  const { data, error } = await supabase
+
+  // Some schemas use `created_at` instead of `joined_at`.
+  const primary = await supabase
     .from("household_members")
     .select("*")
     .eq("household_id", householdId)
     .order("joined_at", { ascending: true })
 
-  if (error) {
-    console.error("Error fetching household members:", error)
+  if (!primary.error) {
+    return primary.data || []
+  }
+
+  const fallback = await supabase
+    .from("household_members")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: true })
+
+  if (fallback.error) {
+    console.error("Error fetching household members:", {
+      message: fallback.error.message,
+      details: (fallback.error as any).details,
+      hint: (fallback.error as any).hint,
+      code: (fallback.error as any).code,
+    })
     return []
   }
 
-  return data || []
+  return fallback.data || []
 }
 
 // Create a new household
 export async function createHousehold(name: string, displayName: string): Promise<Household | null> {
-  const supabase = getSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return null
-
-  // Generate invite code
-  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-
-  const { data: household, error: householdError } = await supabase
-    .from("households")
-    .insert({
-      name,
-      invite_code: inviteCode,
-      created_by: user.id,
-    })
-    .select()
-    .single()
-
-  if (householdError || !household) {
-    console.error("Error creating household:", householdError)
-    return null
-  }
-
-  // Add creator as owner
-  const { error: memberError } = await supabase
-    .from("household_members")
-    .insert({
-      household_id: household.id,
-      user_id: user.id,
-      display_name: displayName,
-      role: "owner",
+  try {
+    const response = await fetch("/api/households/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, displayName }),
     })
 
-  if (memberError) {
-    console.error("Error adding owner to household:", memberError)
-    // Rollback household creation
-    await supabase.from("households").delete().eq("id", household.id)
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok || !data) {
+      console.error("Error creating household:", data)
+      return null
+    }
+
+    return {
+      ...data,
+      created_by: (data as any).created_by ?? (data as any).owner_id,
+      owner_id: (data as any).owner_id ?? (data as any).created_by,
+    } as Household
+  } catch (error) {
+    console.error("Error creating household:", error)
     return null
   }
-
-  return household
 }
 
 // Join a household with invite code
