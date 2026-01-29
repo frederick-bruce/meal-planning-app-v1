@@ -94,19 +94,19 @@ export default function MealDetailPage() {
         </Button>
       </div>
 
-      <Card>
+      <Card className={meal.imageUrl ? "py-0 gap-0 overflow-hidden" : undefined}>
         {meal.imageUrl && (
-          <div className="overflow-hidden rounded-t-xl border-b border-border bg-card">
+          <div className="border-b border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={meal.imageUrl}
               alt={meal.name}
-              className="w-full h-56 object-cover"
+              className="w-full aspect-video object-cover"
               loading="lazy"
             />
           </div>
         )}
-        <CardHeader className="space-y-2">
+        <CardHeader className={meal.imageUrl ? "space-y-2 pt-6" : "space-y-2"}>
           <CardTitle className="text-2xl">{meal.name}</CardTitle>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -126,7 +126,7 @@ export default function MealDetailPage() {
             </div>
           )}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={meal.imageUrl ? "space-y-6 pb-6" : "space-y-6"}>
           {meal.nutrition && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Nutrition (per serving)</h2>

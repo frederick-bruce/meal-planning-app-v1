@@ -481,14 +481,14 @@ export default function MealsPage() {
                         <img
                           src={importedRecipe.imageUrl}
                           alt={importedRecipe.name}
-                          className="w-full aspect-[16/9] object-cover"
+                          className="w-full aspect-video object-cover"
                           loading="lazy"
                         />
                       </div>
                     )}
                     <div>
                       <Label className="text-xs text-muted-foreground">Recipe Name</Label>
-                      <p className="font-medium text-foreground break-words">{importedRecipe.name}</p>
+                      <p className="font-medium text-foreground wrap-break-word">{importedRecipe.name}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:items-center">
@@ -559,7 +559,7 @@ export default function MealsPage() {
                       </Label>
                       <ul className="mt-1 text-sm text-foreground space-y-0.5">
                         {importedRecipe.ingredients.slice(0, 12).map((ing, i) => (
-                          <li key={i} className="break-words">
+                          <li key={i} className="wrap-break-word">
                             {ing.quantity && <span className="text-muted-foreground">{ing.quantity} </span>}
                             {ing.name}
                           </li>
@@ -579,7 +579,7 @@ export default function MealsPage() {
                         </Label>
                         <ol className="mt-1 text-sm text-foreground space-y-1 list-decimal list-inside">
                           {importedRecipe.instructions.slice(0, 8).map((step, i) => (
-                            <li key={i} className="text-sm break-words">
+                            <li key={i} className="text-sm wrap-break-word">
                               {step}
                             </li>
                           ))}
