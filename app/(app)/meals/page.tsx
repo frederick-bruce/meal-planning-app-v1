@@ -429,174 +429,182 @@ export default function MealsPage() {
 
       {/* Import Recipe Dialog */}
       <Dialog open={showImportDialog} onOpenChange={resetImportDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Import Recipe from URL</DialogTitle>
-            <DialogDescription>
-              Paste a link to a recipe and we'll automatically extract the details.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {!importedRecipe ? (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="recipeUrl">Recipe URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="recipeUrl"
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    placeholder="https://example.com/recipe..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !isImporting) {
-                        handleImportRecipe()
-                      }
-                    }}
-                  />
-                  <Button onClick={handleImportRecipe} disabled={isImporting || !importUrl.trim()}>
-                    {isImporting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "Parse"
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Works best with recipe sites like AllRecipes, Food Network, Tasty, BBC Good Food, and others that use structured recipe data.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                {importedRecipe.imageUrl && (
-                  <div className="overflow-hidden rounded-lg border border-border bg-card">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={importedRecipe.imageUrl}
-                      alt={importedRecipe.name}
-                      className="w-full h-40 object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-                <div>
-                  <Label className="text-xs text-muted-foreground">Recipe Name</Label>
-                  <p className="font-medium text-foreground">{importedRecipe.name}</p>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Cook Time</Label>
-                    <p className="flex items-center gap-1 text-sm text-foreground">
-                      <Clock className="w-3.5 h-3.5" />
-                      {importedRecipe.cookTimeMinutes} min
-                    </p>
-                  </div>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-hidden p-0">
+          <div className="flex max-h-[90vh] flex-col">
+            <DialogHeader className="px-6 pt-6">
+              <DialogTitle>Import Recipe from URL</DialogTitle>
+              <DialogDescription>
+                Paste a link to a recipe and we'll automatically extract the details.
+              </DialogDescription>
+            </DialogHeader>
 
-                  {typeof importedRecipe.servings === "number" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Servings</Label>
-                      <p className="text-sm text-foreground">{importedRecipe.servings}</p>
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              {!importedRecipe ? (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recipeUrl">Recipe URL</Label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        id="recipeUrl"
+                        value={importUrl}
+                        onChange={(e) => setImportUrl(e.target.value)}
+                        placeholder="https://example.com/recipe..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isImporting) {
+                            handleImportRecipe()
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={handleImportRecipe}
+                        disabled={isImporting || !importUrl.trim()}
+                        className="sm:w-auto w-full"
+                      >
+                        {isImporting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "Parse"
+                        )}
+                      </Button>
                     </div>
-                  )}
-                  
-                  {importedRecipe.tags.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Tags</Label>
-                      <div className="flex gap-1 mt-0.5">
-                        {importedRecipe.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Works best with recipe sites like AllRecipes, Food Network, Tasty, BBC Good Food, and others that use structured recipe data.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 py-4">
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                    {importedRecipe.imageUrl && (
+                      <div className="overflow-hidden rounded-lg border border-border bg-card">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={importedRecipe.imageUrl}
+                          alt={importedRecipe.name}
+                          className="w-full aspect-[16/9] object-cover"
+                          loading="lazy"
+                        />
                       </div>
-                    </div>
-                  )}
-                </div>
-
-                {importedRecipe.nutrition && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Nutrition (per serving)</Label>
-                    <div className="mt-1 flex flex-wrap gap-2 text-sm text-foreground">
-                      {typeof importedRecipe.nutrition.calories === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.calories} cal</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.proteinG === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.proteinG}g protein</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.carbsG === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.carbsG}g carbs</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.fatG === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.fatG}g fat</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.fiberG === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.fiberG}g fiber</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.sugarG === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.sugarG}g sugar</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.sodiumMg === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.sodiumMg}mg sodium</Badge>
-                      )}
-                      {typeof importedRecipe.nutrition.cholesterolMg === "number" && (
-                        <Badge variant="secondary">{importedRecipe.nutrition.cholesterolMg}mg cholesterol</Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Ingredients ({importedRecipe.ingredients.length})
-                  </Label>
-                  <ul className="mt-1 text-sm text-foreground max-h-32 overflow-y-auto space-y-0.5">
-                    {importedRecipe.ingredients.slice(0, 8).map((ing, i) => (
-                      <li key={i} className="truncate">
-                        {ing.quantity && <span className="text-muted-foreground">{ing.quantity} </span>}
-                        {ing.name}
-                      </li>
-                    ))}
-                    {importedRecipe.ingredients.length > 8 && (
-                      <li className="text-muted-foreground">
-                        +{importedRecipe.ingredients.length - 8} more...
-                      </li>
                     )}
-                  </ul>
-                </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Recipe Name</Label>
+                      <p className="font-medium text-foreground break-words">{importedRecipe.name}</p>
+                    </div>
 
-                {importedRecipe.instructions.length > 0 && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Instructions ({importedRecipe.instructions.length})
-                    </Label>
-                    <ol className="mt-1 text-sm text-foreground max-h-32 overflow-y-auto space-y-1 list-decimal list-inside">
-                      {importedRecipe.instructions.slice(0, 5).map((step, i) => (
-                        <li key={i} className="text-sm">
-                          {step}
-                        </li>
-                      ))}
-                      {importedRecipe.instructions.length > 5 && (
-                        <li className="text-muted-foreground">
-                          +{importedRecipe.instructions.length - 5} more...
-                        </li>
+                    <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:items-center">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Cook Time</Label>
+                        <p className="flex items-center gap-1 text-sm text-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          {importedRecipe.cookTimeMinutes} min
+                        </p>
+                      </div>
+
+                      {typeof importedRecipe.servings === "number" && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Servings</Label>
+                          <p className="text-sm text-foreground">{importedRecipe.servings}</p>
+                        </div>
                       )}
-                    </ol>
+
+                      {importedRecipe.tags.length > 0 && (
+                        <div className="col-span-2 sm:col-auto min-w-0">
+                          <Label className="text-xs text-muted-foreground">Tags</Label>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {importedRecipe.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {importedRecipe.nutrition && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Nutrition (per serving)</Label>
+                        <div className="mt-1 flex flex-wrap gap-2 text-sm text-foreground">
+                          {typeof importedRecipe.nutrition.calories === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.calories} cal</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.proteinG === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.proteinG}g protein</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.carbsG === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.carbsG}g carbs</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.fatG === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.fatG}g fat</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.fiberG === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.fiberG}g fiber</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.sugarG === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.sugarG}g sugar</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.sodiumMg === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.sodiumMg}mg sodium</Badge>
+                          )}
+                          {typeof importedRecipe.nutrition.cholesterolMg === "number" && (
+                            <Badge variant="secondary">{importedRecipe.nutrition.cholesterolMg}mg cholesterol</Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Ingredients ({importedRecipe.ingredients.length})
+                      </Label>
+                      <ul className="mt-1 text-sm text-foreground space-y-0.5">
+                        {importedRecipe.ingredients.slice(0, 12).map((ing, i) => (
+                          <li key={i} className="break-words">
+                            {ing.quantity && <span className="text-muted-foreground">{ing.quantity} </span>}
+                            {ing.name}
+                          </li>
+                        ))}
+                        {importedRecipe.ingredients.length > 12 && (
+                          <li className="text-muted-foreground">
+                            +{importedRecipe.ingredients.length - 12} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {importedRecipe.instructions.length > 0 && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Instructions ({importedRecipe.instructions.length})
+                        </Label>
+                        <ol className="mt-1 text-sm text-foreground space-y-1 list-decimal list-inside">
+                          {importedRecipe.instructions.slice(0, 8).map((step, i) => (
+                            <li key={i} className="text-sm break-words">
+                              {step}
+                            </li>
+                          ))}
+                          {importedRecipe.instructions.length > 8 && (
+                            <li className="text-muted-foreground">
+                              +{importedRecipe.instructions.length - 8} more...
+                            </li>
+                          )}
+                        </ol>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setImportedRecipe(null)}>
-                  Try Another URL
-                </Button>
-                <Button onClick={handleSaveImportedRecipe}>
-                  Save to Library
-                </Button>
-              </div>
+
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                    <Button variant="outline" onClick={() => setImportedRecipe(null)} className="w-full sm:w-auto">
+                      Try Another URL
+                    </Button>
+                    <Button onClick={handleSaveImportedRecipe} className="w-full sm:w-auto">
+                      Save to Library
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
