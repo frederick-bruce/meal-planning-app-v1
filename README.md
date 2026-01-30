@@ -4,6 +4,24 @@
 
 MealMind is a meal planning app that helps busy people organize weekly dinners, generate meal plans based on preferences, and create shopping lists — without the nightly “what’s for dinner?” brain tax.
 
+## Screenshots
+
+### Meals Library
+![Meals Library](public/screenshots/meals.png)
+
+### Weekly Planner
+![Weekly Planner](public/screenshots/planner.png)
+
+### Shopping List
+![Shopping List](public/screenshots/shopping.png)
+
+### Preferences
+![Settings](public/screenshots/settings.png)
+
+### Households
+![Households](public/screenshots/households.png)
+
+
 - **Live Demo:** (add link)
 - **GitHub Repo:** https://github.com/frederick-bruce/meal-planning-app-v1
 
