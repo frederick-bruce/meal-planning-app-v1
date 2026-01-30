@@ -130,8 +130,8 @@ begin
 
   select *
   into target_household
-  from public.households
-  where upper(public.households.invite_code) = upper(join_household_by_invite.invite_code)
+  from public.households h
+  where upper(h.invite_code) = upper($1)
   limit 1;
 
   if not found then
@@ -142,7 +142,7 @@ begin
   values (
     target_household.id,
     auth.uid(),
-    coalesce(nullif(join_household_by_invite.display_name, ''), 'Member'),
+    coalesce(nullif($2, ''), 'Member'),
     'member'
   )
   on conflict (household_id, user_id) do update
